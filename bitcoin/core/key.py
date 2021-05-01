@@ -428,6 +428,37 @@ class CECKey:
 
         raise ValueError
 
+    def adaptor_sign(self, encryption_key, hash):
+        if not isinstance(encryption_key, bytes):
+            raise TypeError('Encryption key must be bytes instance; got %r' % hash.__class__)
+
+        if not isinstance(hash, bytes):
+            raise TypeError('Hash must be bytes instance; got %r' % hash.__class__)
+        if len(hash) != 32:
+            raise ValueError('Hash must be exactly 32 bytes long')
+        
+        raw_sig = ctypes.create_string_buffer(162)
+        result = _libsecp256k1.secp256k1_ecdsa_adaptor_encrypt(
+            _libsecp256k1_context,
+            raw_sig,
+            self.get_raw_privkey(),
+            encryption_key,
+            hash,
+            None,
+            None,
+        )
+
+        assert 1 == result
+        sig_size0 = ctypes.c_size_t()
+        sig_size0.value = 75
+        mb_sig = ctypes.create_string_buffer(sig_size0.value)
+        result = _libsecp256k1.secp256k1_ecdsa_signature_serialize_der(
+            _libsecp256k1_context, mb_sig, ctypes.byref(sig_size0), raw_sig)
+        assert 1 == result
+        # libsecp256k1 creates signatures already in lower-S form, no further
+        # conversion needed.
+        return mb_sig.raw[:sig_size0.value]
+
     def signature_to_low_s(self, sig):
         der_sig = ECDSA_SIG_st()
         _ssl.d2i_ECDSA_SIG(ctypes.byref(ctypes.pointer(der_sig)), ctypes.byref(ctypes.c_char_p(sig)), len(sig))

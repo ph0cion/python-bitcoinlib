@@ -360,6 +360,9 @@ class CKey(object):
     def sign_compact(self, hash):
         return self._cec_key.sign_compact(hash)
 
+    def adaptor_sign(self, enckey, hash):
+        return self._cec_key.adaptor_sign(enckey, hash)
+
 class CBitcoinSecretError(bitcoin.base58.Base58Error):
     pass
 
